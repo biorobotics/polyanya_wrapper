@@ -6,8 +6,7 @@ from polyanya_wrapper import PolyanyaWrapper
 
 repo_path = '../'
 
-instance_path = '../../mt_vrp_o/data/06_09_2026/mt_vrp_o_instances_fast_targets_nonlinear//targ18_win50_random_seed0_occprob0.2_vmaxa4.0_3agents_vmint4.0_vmaxt6.0/'
-occupancy = np.load(instance_path + '/occupancy.npy')
+occupancy = np.load(repo_path + '/data/06_12_2026/test_case1/occupancy.npy')
 
 map_save_path = repo_path + '/data/tmp/'
 
