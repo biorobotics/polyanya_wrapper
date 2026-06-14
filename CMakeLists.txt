@@ -17,6 +17,7 @@ include_directories(
 pybind11_add_module(polyanya_wrapper
   src/bind_polyanya_wrapper.cpp
   src/polyanya_wrapper.cpp
+  src/run_polygon_edge_tests_given_obstacle_map.cpp
   $ENV{HOME}/polyanya/anyangle/polyanya/structs/mesh.cpp
   $ENV{HOME}/polyanya/anyangle/polyanya/helpers/geometry.cpp
   $ENV{HOME}/polyanya/anyangle/polyanya/helpers/timer.cpp
