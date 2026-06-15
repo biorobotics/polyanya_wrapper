@@ -1,22 +1,92 @@
 import numpy as np
+from png_to_boxes import im_to_rects, rects_to_polytopes, get_shared_rect_boundaries, get_connected_rect_component, merge_rects_into_polygons
+from geometry_utils import *
+
+num_obstacle_maps = 100
+num_grid_cells_per_axis = 30
+obstacle_density = 0.2
+obstacle_rects_per_map = []
+random_seed = 0
+rng = np.random.default_rng(np.random.SeedSequence(12345).spawn(random_seed + 1)[-1])
+for obstacle_map_idx in range(num_obstacle_maps):
+  occupancy = np.zeros((num_grid_cells_per_axis, num_grid_cells_per_axis), dtype=bool)
+  available_cell_indices = np.where(np.logical_not(occupancy))
+  indices_idx = rng.choice(len(available_cell_indices[0]), size=int(obstacle_density*len(available_cell_indices[0])), replace=False)
+
+  occupied_cell_indices = (available_cell_indices[0][indices_idx], available_cell_indices[1][indices_idx])
+  for cell_x, cell_y in zip(*occupied_cell_indices):
+    occupancy[cell_x, cell_y] = True
+
+  num_cells_x = occupancy.shape[0]
+  num_cells_y = occupancy.shape[1]
+  obstacle_rects = im_to_rects(np.copy((occupancy.astype(int)*255).reshape(num_cells_x, num_cells_y, 1)))
+  obstacle_rects_per_map.append(np.array(obstacle_rects).astype(float))
 
 results_vgraph = np.load('results_vgraph.npy')
 results_polyanya = np.load('results_original_epsilon.npy')
-not_nan_idx = np.logical_not(np.isnan(results_polyanya[:, 4]))
 
-results_vgraph = results_vgraph[not_nan_idx]
-results_polyanya = results_polyanya[not_nan_idx]
+vgraph_found_path_but_polyanya_didnt = []
+global_test_idx_with_max_path_length_diff = None
+instance_with_max_path_length_diff = None
+max_path_length_diff = 0.
+for global_test_idx, (result_vgraph, result_polyanya) in enumerate(zip(results_vgraph, results_polyanya)):
+  assert(np.all(result_vgraph[:4] == result_polyanya[:4]))
+  if np.isnan(result_polyanya[4]):
+    continue
 
-inf_idx = np.where(np.isinf(results_polyanya[:, 4]))[0]
-start_goal = results_vgraph[:, :4]
-assert(np.all(start_goal == results_polyanya[:, :4]))
-print(np.where(np.isfinite(results_polyanya[np.isinf(results_vgraph[:, 4]), 4]))[0])
-print(inf_idx[np.where(np.isfinite(results_vgraph[inf_idx, 4]))[0]])
-# assert(np.all(np.isinf(results_vgraph[inf_idx, 4])))
-finite_idx = np.where(np.logical_and(np.isfinite(results_vgraph[:, 4]), np.isfinite(results_polyanya[:, 4])))[0]
-print('Max absolute value of difference in path length from polyanya and vgraph: %f' %(np.amax(np.abs(results_vgraph[finite_idx, 4] - results_polyanya[finite_idx, 4]))))
-argmax = finite_idx[np.argmax(np.abs(results_vgraph[finite_idx, 4] - results_polyanya[finite_idx, 4]))]
-print('Test index of max difference: %d' %(argmax%100)) # Test index
-print('Obstacle map index of max difference: %d' %(argmax//100)) # Obstacle map index
-print('Path length from vgraph is %f, and from polyanya is %f' %(results_vgraph[argmax, 4], results_polyanya[argmax, 4]))
-print('Ratio of vgraph path length to polyanya path length is %f' %(results_vgraph[argmax, 4]/results_polyanya[argmax, 4]))
+  obstacle_map_idx = global_test_idx//100
+  test_idx = global_test_idx%100
+
+  if np.isinf(result_polyanya[4]):
+    if np.isfinite(result_vgraph[4]):
+      vgraph_found_path_but_polyanya_didnt.append((obstacle_map_idx, test_idx))
+    continue
+
+  if np.isinf(result_vgraph[4]):
+    close_to_obstacle_edge = False
+    for rect in obstacle_rects_per_map[obstacle_map_idx]:
+      minx = rect[0, 0]
+      miny = rect[0, 1]
+      maxx = rect[1, 0]
+      maxy = rect[1, 1]
+      edge1 = ((minx, miny), (minx, maxy))
+      edge2 = ((minx, maxy), (maxx, maxy))
+      edge3 = ((maxx, maxy), (maxx, miny))
+      edge4 = ((maxx, miny), (minx, miny))
+      start = result_vgraph[:2]
+      d1 = dist_point_to_line_segment(*edge1[0], *edge1[1], *start)
+      d2 = dist_point_to_line_segment(*edge2[0], *edge2[1], *start)
+      d3 = dist_point_to_line_segment(*edge3[0], *edge3[1], *start)
+      d4 = dist_point_to_line_segment(*edge4[0], *edge4[1], *start)
+      d_start = min(d1, d2, d3, d4)
+
+      if d_start <= 1e-7:
+        close_to_obstacle_edge = True
+        break
+
+      '''
+      goal = result_vgraph[2:4]
+      d1 = dist_point_to_line_segment(*edge1[0], *edge1[1], *goal)
+      d2 = dist_point_to_line_segment(*edge2[0], *edge2[1], *goal)
+      d3 = dist_point_to_line_segment(*edge3[0], *edge3[1], *goal)
+      d4 = dist_point_to_line_segment(*edge4[0], *edge4[1], *goal)
+      d_goal = min(d1, d2, d3, d4)
+      if min(d_start, d_goal) <= 1e-7:
+        close_to_obstacle_edge = True
+        break
+      '''
+
+    assert(close_to_obstacle_edge)
+    continue
+
+  path_length_diff = np.abs(result_vgraph[4] - result_polyanya[4])
+  if path_length_diff > max_path_length_diff:
+    global_test_idx_with_max_path_length_diff = global_test_idx
+    instance_with_max_path_length_diff = (obstacle_map_idx, test_idx)
+    max_path_length_diff = path_length_diff
+
+print('Max absolute value of difference in path length from polyanya and vgraph: %f' %(max_path_length_diff))
+print('Obstacle map of max difference: %d' %(instance_with_max_path_length_diff[0]))
+print('Test index of max difference: %d' %(instance_with_max_path_length_diff[1]))
+print('Path length from vgraph is %f, and from polyanya is %f' %(results_vgraph[global_test_idx_with_max_path_length_diff, 4], results_polyanya[global_test_idx_with_max_path_length_diff, 4]))
+print('Ratio of vgraph path length to polyanya path length is %f' %(results_vgraph[global_test_idx_with_max_path_length_diff, 4]/results_polyanya[global_test_idx_with_max_path_length_diff, 4]))
