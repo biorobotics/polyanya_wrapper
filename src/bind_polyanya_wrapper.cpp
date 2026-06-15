@@ -13,4 +13,5 @@ PYBIND11_MODULE(polyanya_wrapper, m) {
     ;
 
   m.def("run_polygon_edge_tests_given_obstacle_map", &run_polygon_edge_tests_given_obstacle_map);
+  m.def("run_polygon_edge_tests_given_obstacle_map_with_vgraph_option", &run_polygon_edge_tests_given_obstacle_map_with_vgraph_option);
 }
