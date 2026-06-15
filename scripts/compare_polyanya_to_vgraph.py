@@ -25,10 +25,11 @@ for obstacle_map_idx in range(num_obstacle_maps):
 results_vgraph = np.load('results_vgraph.npy')
 results_polyanya = np.load('results_original_epsilon.npy')
 
-vgraph_found_path_but_polyanya_didnt = []
-global_test_idx_with_max_path_length_diff = None
-instance_with_max_path_length_diff = None
-max_path_length_diff = 0.
+max_path_length_ratio = 0.
+global_test_idx_with_min_path_length_ratio = None
+instance_with_min_path_length_ratio = None
+min_path_length_ratio = np.inf
+num_instances_where_vgraph_found_path_and_polyanya_didnt = 0
 for global_test_idx, (result_vgraph, result_polyanya) in enumerate(zip(results_vgraph, results_polyanya)):
   assert(np.all(result_vgraph[:4] == result_polyanya[:4]))
   if np.isnan(result_polyanya[4]):
@@ -39,7 +40,7 @@ for global_test_idx, (result_vgraph, result_polyanya) in enumerate(zip(results_v
 
   if np.isinf(result_polyanya[4]):
     if np.isfinite(result_vgraph[4]):
-      vgraph_found_path_but_polyanya_didnt.append((obstacle_map_idx, test_idx))
+      num_instances_where_vgraph_found_path_and_polyanya_didnt += 1
     continue
 
   if np.isinf(result_vgraph[4]):
@@ -79,14 +80,18 @@ for global_test_idx, (result_vgraph, result_polyanya) in enumerate(zip(results_v
     assert(close_to_obstacle_edge)
     continue
 
-  path_length_diff = np.abs(result_vgraph[4] - result_polyanya[4])
-  if path_length_diff > max_path_length_diff:
-    global_test_idx_with_max_path_length_diff = global_test_idx
-    instance_with_max_path_length_diff = (obstacle_map_idx, test_idx)
-    max_path_length_diff = path_length_diff
+  path_length_ratio = result_vgraph[4]/result_polyanya[4]
+  if path_length_ratio < min_path_length_ratio:
+    global_test_idx_with_min_path_length_ratio = global_test_idx
+    instance_with_min_path_length_ratio = (obstacle_map_idx, test_idx)
+    min_path_length_ratio = path_length_ratio
 
-print('Max absolute value of difference in path length from polyanya and vgraph: %f' %(max_path_length_diff))
-print('Obstacle map of max difference: %d' %(instance_with_max_path_length_diff[0]))
-print('Test index of max difference: %d' %(instance_with_max_path_length_diff[1]))
-print('Path length from vgraph is %f, and from polyanya is %f' %(results_vgraph[global_test_idx_with_max_path_length_diff, 4], results_polyanya[global_test_idx_with_max_path_length_diff, 4]))
-print('Ratio of vgraph path length to polyanya path length is %f' %(results_vgraph[global_test_idx_with_max_path_length_diff, 4]/results_polyanya[global_test_idx_with_max_path_length_diff, 4]))
+  max_path_length_ratio = max(max_path_length_ratio, path_length_ratio)
+
+print('A* on vgraph found path in %d instances where polyanya terminated without error but did not find path' %(num_instances_where_vgraph_found_path_and_polyanya_didnt))
+print('Vgraph path is at most %f times shorter than polyanya path' %(1/min_path_length_ratio))
+print('Vgraph path is at most 1 + %E times longer than polyanya path' %(max_path_length_ratio - 1))
+print('Obstacle map of min ratio of vgraph path length to polyanya path length: %d' %(instance_with_min_path_length_ratio[0]))
+print('Test index of min ratio of vgraph path length to polyanya path length: %d' %(instance_with_min_path_length_ratio[1]))
+print('Path length from vgraph is %f, and from polyanya is %f' %(results_vgraph[global_test_idx_with_min_path_length_ratio, 4], results_polyanya[global_test_idx_with_min_path_length_ratio, 4]))
+print('Ratio of vgraph path length to polyanya path length is %f' %(results_vgraph[global_test_idx_with_min_path_length_ratio, 4]/results_polyanya[global_test_idx_with_min_path_length_ratio, 4]))
