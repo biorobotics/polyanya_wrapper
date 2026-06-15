@@ -75,14 +75,13 @@ MatrixXd run_polygon_edge_tests_given_obstacle_map(const Ref<const Matrix<bool, 
     ret(test_idx, 1) = start(1);
     ret(test_idx, 2) = goal(0);
     ret(test_idx, 3) = goal(1);
-    /*
-    if (test_idx == 47) {
-      std::cout << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10) << start.transpose() << std::endl;
-      throw std::runtime_error("Intentional error");
+    MatrixXd shortest_path;
+    try {
+      shortest_path = polyanya_wrapper.shortest_path(start, goal);
+    } catch (const std::runtime_error &error) {
+      ret(test_idx, 4) = std::numeric_limits<double>::quiet_NaN();
+      continue;
     }
-    */
-
-    MatrixXd shortest_path = polyanya_wrapper.shortest_path(start, goal);
     if (shortest_path.rows()) {
       double dist = 0.;
       for (int path_idx = 0; path_idx < shortest_path.rows() - 1; ++path_idx) {
