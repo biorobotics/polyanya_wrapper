@@ -132,14 +132,6 @@ MatrixXd run_polygon_edge_tests_given_obstacle_map_with_vgraph_option(const Ref<
           vgraph_adj_list[vertex_idx].push_back(std::pair<int, double>(start_node_idx, dist));
         }
       }
-      int row = vpoly_start.rows() - 1;
-      auto it = vertex_loc_to_idx_map.find(std::pair<double, double>(vpoly_start(row, 2), vpoly_start(row, 3)));
-      if (it != vertex_loc_to_idx_map.end()) {
-        int vertex_idx = it->second;
-        double dist = (obstacle_vertices.row(vertex_idx).transpose() - start).norm();
-        vgraph_adj_list[start_node_idx].push_back(std::pair<int, double>(vertex_idx, dist));
-        vgraph_adj_list[vertex_idx].push_back(std::pair<int, double>(start_node_idx, dist));
-      }
 
       for (int row = 0; row < vpoly_goal.rows(); ++row) {
         auto it = vertex_loc_to_idx_map.find(std::pair<double, double>(vpoly_goal(row, 0), vpoly_goal(row, 1)));
@@ -149,14 +141,6 @@ MatrixXd run_polygon_edge_tests_given_obstacle_map_with_vgraph_option(const Ref<
           vgraph_adj_list[goal_node_idx].push_back(std::pair<int, double>(vertex_idx, dist));
           vgraph_adj_list[vertex_idx].push_back(std::pair<int, double>(goal_node_idx, dist));
         }
-      }
-      row = vpoly_goal.rows() - 1;
-      it = vertex_loc_to_idx_map.find(std::pair<double, double>(vpoly_goal(row, 2), vpoly_goal(row, 3)));
-      if (it != vertex_loc_to_idx_map.end()) {
-        int vertex_idx = it->second;
-        double dist = (obstacle_vertices.row(vertex_idx).transpose() - goal).norm();
-        vgraph_adj_list[goal_node_idx].push_back(std::pair<int, double>(vertex_idx, dist));
-        vgraph_adj_list[vertex_idx].push_back(std::pair<int, double>(goal_node_idx, dist));
       }
 
       VectorXd h_vals_per_obstacle_vertex(obstacle_vertices.rows());
@@ -175,12 +159,6 @@ MatrixXd run_polygon_edge_tests_given_obstacle_map_with_vgraph_option(const Ref<
           vgraph_adj_list[vertex_idx].pop_back();
         }
       }
-      row = vpoly_start.rows() - 1;
-      it = vertex_loc_to_idx_map.find(std::pair<double, double>(vpoly_start(row, 2), vpoly_start(row, 3)));
-      if (it != vertex_loc_to_idx_map.end()) {
-        int vertex_idx = it->second;
-        vgraph_adj_list[vertex_idx].pop_back();
-      }
 
       for (int row = 0; row < vpoly_goal.rows(); ++row) {
         auto it = vertex_loc_to_idx_map.find(std::pair<double, double>(vpoly_goal(row, 0), vpoly_goal(row, 1)));
@@ -188,12 +166,6 @@ MatrixXd run_polygon_edge_tests_given_obstacle_map_with_vgraph_option(const Ref<
           int vertex_idx = it->second;
           vgraph_adj_list[vertex_idx].pop_back();
         }
-      }
-      row = vpoly_goal.rows() - 1;
-      it = vertex_loc_to_idx_map.find(std::pair<double, double>(vpoly_goal(row, 2), vpoly_goal(row, 3)));
-      if (it != vertex_loc_to_idx_map.end()) {
-        int vertex_idx = it->second;
-        vgraph_adj_list[vertex_idx].pop_back();
       }
     } else {
       MatrixXd shortest_path;
