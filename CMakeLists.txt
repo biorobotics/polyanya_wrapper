@@ -48,3 +48,21 @@ pybind11_add_module(vgraph_planner
   src/plan_on_vgraph.cpp
 )
 target_link_libraries(vgraph_planner PRIVATE visibility OpenMP::OpenMP_CXX)
+
+pybind11_add_module(polyanya_wrapper2
+  src/bind_polyanya_wrapper2.cpp
+  src/polyanya_wrapper2.cpp
+  $ENV{HOME}/Nav-Mesh-OkNN/helpers/geometry.cpp
+  $ENV{HOME}/Nav-Mesh-OkNN/helpers/timer.cpp
+  $ENV{HOME}/Nav-Mesh-OkNN/search/expansion.cpp
+  $ENV{HOME}/Nav-Mesh-OkNN/search/searchinstance.cpp
+  $ENV{HOME}/Nav-Mesh-OkNN/structs/mesh.cpp
+  $ENV{HOME}/Nav-Mesh-OkNN/run_p2p.cpp
+  $ENV{HOME}/Nav-Mesh-OkNN/p2p.hpp
+)
+target_include_directories(polyanya_wrapper2 PRIVATE
+  $ENV{HOME}/Nav-Mesh-OkNN/structs
+  $ENV{HOME}/Nav-Mesh-OkNN/helpers
+  $ENV{HOME}/Nav-Mesh-OkNN/search
+)
+target_link_libraries(polyanya_wrapper2 PRIVATE OpenMP::OpenMP_CXX)
